@@ -1,0 +1,76 @@
+# See get_default_configs() in train_ScanNet_DDP_Warmup.py
+# and get_default_configs() in model_architecture.py for the meanings of those configs
+BATCH_NORM:     True
+BATCH_SIZE:     16
+NUM_WORKERS:    24
+USE_XYZ:        True
+USE_MLP:        False
+USE_WEIGHT:     True
+USE_PE:         True
+device:         'cuda'
+manual_seed:    1
+sync_bn:        True
+
+print_freq:     5
+eval_freq:      5
+save_freq:      5
+
+TIME: False
+
+MAX_POINTS_NUM: 550000
+use_ASPP:       False
+NormalizedXYZ:  False
+K_forward:      [16, 16, 16, 16, 16]
+K_propagate:    [16, 16, 16, 16, 16]
+K_self:         [16, 16, 16, 16, 16]
+point_dim:      3
+total_epoches:  300
+
+num_level:      5
+grid_size:      [0.1, 0.2, 0.4, 0.8, 1.6]
+base_dim:       64
+feat_dim:       [64, 128, 192, 256, 384]
+mid_dim:        [16,16,16,16,16]
+mid_dim_back:   1
+
+guided_level:   0
+num_heads:      8
+resblocks:      [ 0, 2, 4, 6, 6]
+resblocks_back: [ 0, 0, 0, 0, 0]
+
+train_data_path: './data/ScanNet_withNewNormal/train/*.pth'
+val_data_path:   './data/ScanNet_withNewNormal/val/*.pth'
+test_data_path:  './data/ScanNet_withNewNormal/test/*.pth'
+pretrain:        null
+optimizer:       'AdamW'
+adamw_decay:     0.05
+learning_rate:   0.02
+gamma:           0.5
+label_smoothing: 0.2
+scheduler:       'MultiStepWithWarmup' # 'MultiStepWithWarmup' 'CosineAnnealingWarmupRestarts'
+milestones:      [80, 140, 180, 220, 260]
+ft_learning_rate: 0.016
+decay_rate:      0.0001
+ignore_label:    -100
+drop_path_rate:  0.
+dropout_rate:    0.
+dropout_fc:      0.
+layer_norm_guidance: False
+
+scheduler_update: 'step'
+warmup:           'linear'
+warmup_epochs:    10
+warmup_ratio:     0.00001
+
+use_tensorboard: False
+model_name:      'NewPointConvFormer_10cm'
+experiment_dir:  './guided_experiment_10cm/'
+ft_experiment_dir: './ft_guided_experiment_10cm/'
+num_classes:      20
+ft_model_path:   '/mnt/task_runtime/guided_experiment_10cm/hsc/model/model_best.pth'
+
+eval_path:       './evaluation_10cm/'
+
+classes:         ['wall', 'floor', 'cabinet', 'bed', 'chair', 'sofa', 'table', 'door',
+                  'window', 'bookshelf', 'picture', 'counter', 'desk', 'curtain',
+                  'refridgerator', 'shower curtain', 'toilet', 'sink', 'bathtub', 'otherfurniture']

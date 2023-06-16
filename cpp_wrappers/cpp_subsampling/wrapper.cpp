@@ -1,3 +1,8 @@
+// MIT License
+
+// Copyright (c) 2019 HuguesTHOMAS
+
+
 #include <Python.h>
 #include <numpy/arrayobject.h>
 #include "grid_subsampling/grid_subsampling.h"

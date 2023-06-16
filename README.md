@@ -8,11 +8,22 @@ This is the PyTorch implementation of our paper [**PointConvFormer**]
 
 ## Introduction
 
-We introduce PointConvFormer, a novel building block for point cloud based deep neural network architectures. PointConvFormer combines ideas from point convolution, where filter weights are only based on relative position, and Transformers where the attention computation takes the features into account. In our proposed new operation, feature difference between points in the neighborhood serves as an indicator to re-weight the convolutional weights. Hence, we preserved some of the translation-invariance of the convolution operation whereas taken attention into account to choose the relevant points for convolution. We also explore multi-head mechanisms as well. To validate the effectiveness of PointConvFormer, we experiment on both semantic segmentation and scene flow estimation tasks on point clouds with multiple datasets including ScanNet, SemanticKitti, FlyingThings3D and KITTI. Our results show that %the deep network built with PointConvFormer substantially outperforms classic convolutions, regular transformers, and voxelized sparse convolution approaches with smaller, more computationally efficient networks.
+We introduce PointConvFormer, a novel building block for point cloud based deep network architectures. Inspired
+by generalization theory, PointConvFormer combines ideas from point convolution, where filter weights are only based
+on relative position, and Transformers which utilize feature-based attention. In PointConvFormer, attention computed
+from feature difference between points in the neighborhood is used to modify the convolutional weights at each point.
+Hence, we preserved the invariances from point convolution, whereas attention helps to select relevant points in the
+neighborhood for convolution. PointConvFormer is suitable for multiple tasks that require details at the point level, such
+as segmentation and scene flow estimation tasks. Our results show that PointConvFormer offers a better accuracy-speed
+tradeoff than classic convolutions, regular transformers, and voxelized sparse convolution approaches. Visualizations
+show that PointConvFormer performs similarly to convolution on flat areas, whereas the neighborhood selection effect is stronger on object boundaries, showing that it has got the best of both worlds.
 
 ## Highlight
 1. We introduce PointConvFormer which modifies convolution by an attention weight computed from the  differences of local neighbourhood features. We further extend the PointConvFormer with a multi-head mechanism.
 2. We conduct thorough experiments on semantic segmentation tasks for both indoor and outdoor scenes, as well as  scene flow estimation from 3D point clouds on multiple datasets. Extensive ablation studies are conducted to study the properties and design choice of PointConvFormer.
+
+## Citation
+Please cite it as W. Wu, L. Fuxin, Q. Shan. PointConvFormer: Revenge of the Point-Cloud Convolution. CVPR 2023
 
 ## Installation
 
@@ -27,7 +38,7 @@ One possibility is to run:
 ```
 conda install pytorch==1.8.0 torchvision==0.9.0 torchaudio==0.8.0 cudatoolkit=10.1 -c pytorch
 ```
-However usually you should already have a docker environment that takes care of pyTorch.
+However usually you should already have an environment that takes care of pyTorch.
 
 Afterwards, running setup.sh will download all the prepared ScanNet dataset as well as installing the required packages. 
 
@@ -43,15 +54,11 @@ setup.sh
 
 2. You might also want to set the `model_name`, `experiment_dir` accordingly in `configFLPCF_10cm.yaml`;
 
-3. If you use turibolt and would like to save the results to blobby, Please set the `save_to_blobby` to `True`, and `use_tensorboard` to `False` in `configFLPCF_10cm.yaml`;
-
 4. Change other settings in `configFLPCF_10cm.yaml` based on your experiments;
 
-5. To train a model with `n` gpus, change the `num_gpus` and `devices_ids` accordingly in `configFLPCF_10cm.yaml`. Change the `--nproc_per_node` to be `n` in `run_distributed.sh`. Make sure this matches your Turi Bolt configuration settings otherwise the system will give an error prompt.
+5. Make sure you have the same number of CPUs as num_workers in the config file (e.g. configFLPCF_10cm.yaml).
 
-6. Make sure you have the same number of CPUs as num_workers in the config file.
-
-6. ```sh run_distributed.sh config_file_name```
+6. Run ```sh run_distributed.sh num_gpus config_file_name``` to train the model with num_gpus GPUs, or python train_ScanNet_DDP_WarmUP.py --config configFLPCF_10cm.yaml to train the model with a single GPU.
 
 ### Evaluation
 
@@ -60,6 +67,15 @@ setup.sh
 Then, you can evaluate with the following comand:
 
 ```
-python test_ScanNet_guided_2cmV4_time_simple.py --config ./configFLPCF_10cm.yaml --pretrain_path ./pretrain/[model_weights].pth
+python test_ScanNet_simple.py --config ./configFLPCF_10cm.yaml --pretrain_path ./pretrain/[model_weights].pth
 ```
 which will evaluate the time as well as outputting ply files for each scene.
+
+### Configuration Files and Default Models
+
+We have provided a few sample configuration files for the ScanNet dataset. configPCF_10cm.yaml is a sample 10cm configuration file
+and configPCF_10cm_lite.yaml corresponds to the lightweight version in the paper. Similar configuration files were provided for the 5cm
+configuration and a configuration file configPCF_2cm_PTF2.yaml is also provided utilizing some of the ideas from PointTransformerv2
+(grid size, mix3D augmentation), which is cheaper than the main one reported in the paper yet still achieves a comparable 74.4% mIOU on the ScanNet validation set.
+
+Besides, in model_architecture.py we have provided a few default models such as PCF_Tiny, PCF_Small, PCF_Normal and PCF_Large, which can serve for different scenarios.

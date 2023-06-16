@@ -1,3 +1,8 @@
+## Adapted from StratifiedTransformer
+## https://github.com/dvlab-research/Stratified-Transformer
+## Copyright @ 2022 DV Lab
+## MIT License, https://github.com/dvlab-research/Stratified-Transformer/blob/main/LICENSE.md
+
 import math
 import torch
 
@@ -204,29 +209,29 @@ class CosineAnnealingWarmupRestarts(_LRScheduler):
 
 
 if __name__ == '__main__':
-  import torchvision.models as models
-  model = models.vgg16()
-  optimizer = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=0.001)
-  optimizer.param_groups[0]['initial_lr'] = 0.2 / 25.0
-  optimizer.param_groups[0]['max_lr'] = 0.2
-  optimizer.param_groups[0]['min_lr'] = 0.2 / 10000.0
-  optimizer.param_groups[0]['max_momentum'] = 0.95
-  optimizer.param_groups[0]['base_momentum'] = 0.85
-  last_step = 2
-  max_iter = 100
+    import torchvision.models as models
+    model = models.vgg16()
+    optimizer = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=0.001)
+    optimizer.param_groups[0]['initial_lr'] = 0.2 / 25.0
+    optimizer.param_groups[0]['max_lr'] = 0.2
+    optimizer.param_groups[0]['min_lr'] = 0.2 / 10000.0
+    optimizer.param_groups[0]['max_momentum'] = 0.95
+    optimizer.param_groups[0]['base_momentum'] = 0.85
+    last_step = 2
+    max_iter = 100
   # scheduler = PolyLR(optimizer, max_iter=max_iter, power=0.9, last_step=last_step)
-  scheduler = OneCycleLR(optimizer, max_lr=0.2, total_steps=max_iter, pct_start=0.1, anneal_strategy='cos', div_factor=25.0,
+    scheduler = OneCycleLR(optimizer, max_lr=0.2, total_steps=max_iter, pct_start=0.1, anneal_strategy='cos', div_factor=25.0,
              final_div_factor=10000.0, last_epoch=last_step)
-  lr_list = []
-  for epoch in range(max(last_step + 1, 0), min(max_iter, 100)):
-    lrs = ', '.join(['{:.5e}'.format(x) for x in scheduler.get_last_lr()])
-    print('epoch {} lrs {}'.format(epoch, lrs))
-    lr_list.append(scheduler.get_last_lr()[0])
-    scheduler.step()
+    lr_list = []
+    for epoch in range(max(last_step + 1, 0), min(max_iter, 100)):
+        lrs = ', '.join(['{:.5e}'.format(x) for x in scheduler.get_last_lr()])
+        print('epoch {} lrs {}'.format(epoch, lrs))
+        lr_list.append(scheduler.get_last_lr()[0])
+        scheduler.step()
 
-  import numpy as np
-  import matplotlib.pyplot as plt
-  x = np.arange(max(last_step + 1, 0), min(max_iter, 100), 1)
-  plt.title("function")
-  plt.plot(x, lr_list)
-  plt.show()
+    import numpy as np
+    import matplotlib.pyplot as plt
+    x = np.arange(max(last_step + 1, 0), min(max_iter, 100), 1)
+    plt.title("function")
+    plt.plot(x, lr_list)
+    plt.show()

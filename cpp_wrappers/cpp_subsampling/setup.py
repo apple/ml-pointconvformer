@@ -1,3 +1,7 @@
+# MIT License
+
+# Copyright (c) 2019 HuguesTHOMAS
+
 from distutils.core import setup, Extension
 import numpy.distutils.misc_util
 
@@ -19,11 +23,3 @@ module = Extension(m_name,
                                        '-D_GLIBCXX_USE_CXX11_ABI=0'])
 
 setup(ext_modules=[module], include_dirs=numpy.distutils.misc_util.get_numpy_include_dirs())
-
-
-
-
-
-
-
-

@@ -1,3 +1,8 @@
+// MIT License
+
+// Copyright (c) 2019 HuguesTHOMAS
+
+
 #include <Python.h>
 #include <numpy/arrayobject.h>
 #include "neighbors/neighbors.h"

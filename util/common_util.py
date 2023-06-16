@@ -1,10 +1,19 @@
+## Partly adapted from StratifiedTransformer
+## https://github.com/dvlab-research/Stratified-Transformer
+## Copyright @ 2022 DV Lab
+## MIT License, https://github.com/dvlab-research/Stratified-Transformer/blob/main/LICENSE.md
+
+# For to_device() and replace_batchnorm():
+# For licensing see accompanying LICENSE file.
+# Copyright (C) 2022-2023 Apple Inc. All Rights Reserved.
+## 
+
 import os
 import numpy as np
 from PIL import Image
 import random
 
 import torch
-import random
 from torch import nn
 from torch.nn.modules.conv import _ConvNd
 from torch.nn.modules.batchnorm import _BatchNorm
@@ -179,17 +188,25 @@ def memory_use():
         torch.cuda.memory_reserved() / BYTES_IN_GB,
         torch.cuda.max_memory_reserved() / BYTES_IN_GB,
     )
-    
-def to_device(input, device='cuda', non_blocking=False):
 
-    if isinstance(input, list) and len(input) > 0:
-        for idx in range(len(input)):
-            input[idx] = input[idx].to(device, non_blocking = non_blocking)
-    
-    if isinstance(input, torch.Tensor):
-        input = input.to(device, non_blocking = non_blocking)
 
-    return input 
+def to_device(input_data, device='cuda', non_blocking=False):
+    '''
+    Move input_data to device. If the data is a list, move everything in the list to device
+    '''
+    if isinstance(input_data, list) and len(input_data) > 0:
+        if isinstance(input_data[0], list):
+            for idx in range(len(input_data)):
+                for idx2 in range(len(input_data[idx])):
+                    input_data[idx][idx2] = input_data[idx][idx2].to(device, non_blocking=non_blocking)
+        else:
+            for idx in range(len(input_data)):
+                input_data[idx] = input_data[idx].to(device, non_blocking=non_blocking)
+
+    if isinstance(input_data, torch.Tensor):
+        input_data = input_data.to(device, non_blocking=non_blocking)
+
+    return input_data
 
 
 def init_seeds(seed=0, cuda_deterministic=True):
@@ -206,6 +223,7 @@ def init_seeds(seed=0, cuda_deterministic=True):
         torch.backends.cudnn.deterministic = False 
         torch.backends.cudnn.benchmark = True 
 
+
 def smooth_loss(output, target, eps=0.1):
     w = torch.zeros_like(output).scatter(1, target.unsqueeze(1), 1)
     w = w * (1 - eps) + (1 - w) * eps / (output.shape[1] - 1)
@@ -213,9 +231,13 @@ def smooth_loss(output, target, eps=0.1):
     loss = (-w * log_prob).sum(dim=1).mean()
     return loss
 
-# Took from LeVit repo and edited
+
+# Inspired by the LeViT repository
 # https://github.com/facebookresearch/LeViT
 def replace_batchnorm(net):
+    '''
+    Fuse the batch normalization during inference time
+    '''
     for child_name, child in net.named_children():
         if hasattr(child, 'fuse'):
             setattr(net, child_name, child.fuse())

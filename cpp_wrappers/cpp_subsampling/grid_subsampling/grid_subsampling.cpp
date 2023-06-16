@@ -1,3 +1,7 @@
+// MIT License
+
+// Copyright (c) 2019 HuguesTHOMAS
+
 
 #include "grid_subsampling.h"
 

@@ -1,3 +1,6 @@
+// MIT License
+
+// Copyright (c) 2019 HuguesTHOMAS
 
 #include "neighbors.h"
 #include <ctime>

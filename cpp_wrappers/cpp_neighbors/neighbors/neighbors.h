@@ -1,4 +1,6 @@
+// MIT License
 
+// Copyright (c) 2019 HuguesTHOMAS
 
 #include "../../cpp_utils/cloud/cloud.h"
 #include "../../cpp_utils/nanoflann/nanoflann.hpp"

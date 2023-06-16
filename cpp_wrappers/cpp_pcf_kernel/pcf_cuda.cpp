@@ -1,19 +1,18 @@
-// PCF CUDA Kernel:
-// Author: Fuxin Li (fli26@apple.com)
-// All rights reserved
+//
+// For licensing see accompanying LICENSE file.
+// Copyright (C) 2022-2023 Apple Inc. All Rights Reserved.
+//
 #include <torch/extension.h>
 
 #include <vector>
 
-// TODO: For now, not attempting to fuse the next downsampling linear layer because hand-written matmul cannot compare with optimized gemm kernels. May explore using CUTLASS for that at a later time.
+// TODO: For now, not attempting to fuse the next downsampling linear layer because hand-written matmul 
+//       cannot compare with optimized gemm kernels. May explore using CUTLASS for that at a later time.
 torch::Tensor pcf_cuda_forward(
     torch::Tensor input,
     torch::Tensor neighbor_inds,
     torch::Tensor guidance,
     torch::Tensor weights
-//,
-//    torch::Tensor mlp_weights,
-//    torch::Tensor mlp_bias);
     );
 
 // Need a version for PointConv too
@@ -22,7 +21,6 @@ torch::Tensor pconv_cuda_forward(
     torch::Tensor neighbor_inds,
     torch::Tensor weights,
     torch::Tensor additional_features);
-
 
 std::vector<torch::Tensor> pconv_cuda_backward(
     torch::Tensor grad_output,
@@ -47,17 +45,12 @@ torch::Tensor pconv_forward(
     torch::Tensor neighbor_inds,
     torch::Tensor weights,
     torch::Tensor additional_features
-//    ,
-//    torch::Tensor mlp_weights,
-//    torch::Tensor mlp_bias
 )
 {   
     CHECK_INPUT(input);
     CHECK_INPUT(neighbor_inds);
     CHECK_INPUT(weights);
     CHECK_INPUT(additional_features);
-//    CHECK_INPUT(mlp_weights);
-//    CHECK_INPUT(mlp_bias);
 
     return pconv_cuda_forward(input, neighbor_inds, weights, additional_features);
 }
@@ -73,7 +66,6 @@ std::vector<torch::Tensor> pconv_backward(
     CHECK_INPUT(neighbor_inds);
     CHECK_INPUT(weights);
     CHECK_INPUT(additional_features);
-//    return pcf_cuda_backward(grad_output, neighbor_inds, grad_guidance, grad_weights, grad_mlp_weights, grad_mlp_bias, grad_input);
     return pconv_cuda_backward(grad_output,input, neighbor_inds, weights,additional_features);
 }
 
@@ -83,19 +75,12 @@ torch::Tensor pcf_forward(
     torch::Tensor neighbor_inds,
     torch::Tensor guidance,
     torch::Tensor weights
-//    ,
-//    torch::Tensor mlp_weights,
-//    torch::Tensor mlp_bias
 ) 
 {
     CHECK_INPUT(input);
     CHECK_INPUT(neighbor_inds);
     CHECK_INPUT(guidance);
     CHECK_INPUT(weights);
-//    CHECK_INPUT(mlp_weights);
-//    CHECK_INPUT(mlp_bias);
-
-//    return pcf_cuda_forward(input, neighbor_inds, guidance, weights, mlp_weights, mlp_bias);
     return pcf_cuda_forward(input, neighbor_inds, guidance, weights);
 }
 
@@ -110,7 +95,6 @@ std::vector<torch::Tensor> pcf_backward(
     CHECK_INPUT(neighbor_inds);
     CHECK_INPUT(guidance);
     CHECK_INPUT(weights);
-//    return pcf_cuda_backward(grad_output, neighbor_inds, grad_guidance, grad_weights, grad_mlp_weights, grad_mlp_bias, grad_input);
     return pcf_cuda_backward(grad_output,input, neighbor_inds, guidance, weights);
 }
 

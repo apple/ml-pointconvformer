@@ -1,3 +1,7 @@
+# cp_batchnorm.py taken from https://github.com/csrhddlam/pytorch-checkpoint/blob/master/
+# copyright (c) 2018 Huiyu Wang
+# MIT License: https://github.com/csrhddlam/pytorch-checkpoint/blob/master/LICENSE
+
 import torch
 from torch.nn import functional as F
 
@@ -24,4 +28,3 @@ class CpBatchNorm2d(torch.nn.BatchNorm2d):
             return F.batch_norm(
                 input, self.running_mean, self.running_var, self.weight, self.bias,
                 self.training or not self.track_running_stats, 0.0, self.eps)
-

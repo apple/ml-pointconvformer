@@ -1,5 +1,8 @@
+//
+// For licensing see accompanying LICENSE file.
+// Copyright (C) 2022-2023 Apple Inc. All Rights Reserved.
+//
 #include <torch/extension.h>
-
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include <stdio.h>
@@ -15,8 +18,6 @@ __global__ void pcf_cuda_forward_kernel(
     const torch::PackedTensorAccessor32<long,3,torch::RestrictPtrTraits> __restrict__ neighbor_inds,
     const torch::PackedTensorAccessor32<scalar_t,4,torch::RestrictPtrTraits> __restrict__ guidance,
     const torch::PackedTensorAccessor32<scalar_t,4,torch::RestrictPtrTraits> __restrict__ weights,
-//    const torch::PackedTensorAccessor32<scalar_t,2,torch::RestrictPtrTraits> __restrict__ mlp_weights,
- //   const torch::PackedTensorAccessor32<scalar_t,1,torch::RestrictPtrTraits> __restrict__ mlp_bias,
     torch::PackedTensorAccessor32<scalar_t,3,torch::RestrictPtrTraits> __restrict__ output)
 {
 /* input: B x N x C_in tensor, B = batch size, N = number of points, C_in = number of channels, input features
@@ -36,12 +37,9 @@ __global__ void pcf_cuda_forward_kernel(
 	const int Nout = neighbor_inds.size(1);
 	const int C_in = input.size(2);
 	const int K = neighbor_inds.size(2);
-//	const int C_out = mlp_weights.size(1);
 	const int C_mid = weights.size(3);
 	const int increment = blockDim.x / C_mid;
 	const int num_heads = guidance.size(3);
-//	printf("C_in: %d, C_mid: %d, Nout: %d\n", C_in, C_mid, Nout);
-//	extern __shared__ float interm[];
   	/* parallelize ii and i on blocks */
   	// Supposedly blockIdx.x should go up to B * N
   	for (iter0 = blockIdx.x; iter0< B * Nout; iter0+= gridDim.x)
@@ -57,18 +55,6 @@ __global__ void pcf_cuda_forward_kernel(
 		// Throw out the excessive threads
 		if (jj >= C_mid)
 			continue;
-//		for (jj=threadIdx.x / (blockDim.x / C_mid);jj < C_mid;jj += blockDim.x)
-//                for (kk=threadIdx.x % increment;kk<C_in;kk+=increment)
- //               	interm[jj*C_in + kk] = 0.0;
-// This is our main non-contiguous memory access because we need to sparse gather the input
-// But maybe we coalesce memory across all the threads in the block?
-//		for(k=0;k<K;k++)
-//		{
-// TODO: Could prune the neighbor here for faster performance (maybe not going to be very useful because of syncthreads at the end
-//			if (guidance[ii][i][k]< 1e-4)
-//				continue;
-//			scalar_t real_weight = weights[ii][i][jj][k] * guidance[ii][i][k];
-//			scalar_t partial_sum = 0.0;
 		#pragma unroll
 		for(kk=threadIdx.x % increment;kk<C_in;kk+=increment)
 		{
@@ -82,20 +68,6 @@ __global__ void pcf_cuda_forward_kernel(
 			}
 			output[ii][i][jj + kk*C_mid] = partial_sum;
 		}
-		// At this point we would have fully populated the interm array of C_mid * C_in
-//		__syncthreads();
-//		for (kk=threadIdx.x;kk<C_in * C_mid;kk+=blockDim.x)
-//			output[ii][i][kk] = interm[kk];
-		// Change the thread pattern to avoid locks on the output array
-// Need to see whether this is efficient or not since when C_out is small this may waste some threads
-//		for(j=threadIdx.x;j<C_out;j+=blockDim.x)
-//		{
-  //                      scalar_t val = 0.0;
-//			#pragma unroll
-//			for(kk=0;kk<C_in*C_mid;kk++)
-//				val += interm[kk] * mlp_weights[kk][j];
-//			output[ii][i][j] = val + mlp_bias[j];
-//		}
          }
 }
 
@@ -124,12 +96,9 @@ __global__ void pconv_cuda_forward_kernel(
         const int Nout = neighbor_inds.size(1);
         const int C_in = input.size(2);
         const int K = neighbor_inds.size(2);
-//      const int C_out = mlp_weights.size(1);
         const int C_mid = weights.size(3);
 	const int C_add = additional_features.size(3);
         const int increment = blockDim.x / C_mid;
-//      printf("C_in: %d, C_mid: %d, Nout: %d\n", C_in, C_mid, Nout);
-//      extern __shared__ float interm[];
         /* parallelize ii and i on blocks */
         // Supposedly blockIdx.x should go up to B * N
         for (iter0 = blockIdx.x; iter0< B * Nout; iter0+= gridDim.x)
@@ -145,13 +114,8 @@ __global__ void pconv_cuda_forward_kernel(
                 // Throw out the excessive threads
                 if (jj >= C_mid)
                         continue;
-//              for (jj=threadIdx.x / (blockDim.x / C_mid);jj < C_mid;jj += blockDim.x)
-//                for (kk=threadIdx.x % increment;kk<C_in;kk+=increment)
- //                     interm[jj*C_in + kk] = 0.0;
 // This is our main non-contiguous memory access because we need to sparse gather the input
 // But maybe we coalesce memory across all the threads in the block?
-//              for(k=0;k<K;k++)
-//              {
                 #pragma unroll
                 for(kk=threadIdx.x % increment;kk<C_in;kk+=increment)
                 {
@@ -161,15 +125,18 @@ __global__ void pconv_cuda_forward_kernel(
                                 partial_sum += input[ii][neighbor_inds[ii][i][k]][kk] * weights[ii][i][k][jj];
                         output[ii][i][jj + kk*C_mid] = partial_sum;
                 }
-		#pragma unroll
-		for(kk=threadIdx.x % increment;kk<C_add;kk+=increment)
-		{
+                if (C_add > 0)
+                {
+		    #pragma unroll
+		    for(kk=threadIdx.x % increment;kk<C_add;kk+=increment)
+		    {
 			scalar_t partial_sum = 0.0;
 			#pragma unroll
 			for (k=0;k<K;k++)
 				partial_sum += additional_features[ii][i][k][kk] * weights[ii][i][k][jj];
 			output[ii][i][jj + (kk + C_in)*C_mid] = partial_sum;
-		}
+		     }
+                }
                 // At this point we would have fully populated the interm array of C_mid * C_in
 	}
 }
@@ -184,8 +151,6 @@ __global__ void pcf_cuda_backward_kernel(
     torch::PackedTensorAccessor32<scalar_t,3,torch::RestrictPtrTraits> __restrict__ grad_input,
     torch::PackedTensorAccessor32<scalar_t,4,torch::RestrictPtrTraits> __restrict__ grad_guidance,
     torch::PackedTensorAccessor32<scalar_t,4,torch::RestrictPtrTraits> __restrict__ grad_weights)
-//    const torch::PackedTensorAccessor32<scalar_t,2,torch::RestrictPtrTraits> __restrict__ mlp_weights,
- //   const torch::PackedTensorAccessor32<scalar_t,1,torch::RestrictPtrTraits> __restrict__ mlp_bias,
 /* 
    grad_output: B x N x (C_mid * C_in), the gradient derived from above
    input: B x N x C_in tensor, B = batch size, N = number of points, C_in = number of channels, input features
@@ -207,7 +172,6 @@ __global__ void pcf_cuda_backward_kernel(
         const int Nout = neighbor_inds.size(1);
         const int C_in = input.size(2);
         const int K = neighbor_inds.size(2);
-//      const int C_out = mlp_weights.size(1);
         const int C_mid = weights.size(3);
         const int increment = blockDim.x / C_mid;
         const int num_heads = guidance.size(3);
@@ -240,22 +204,10 @@ __global__ void pcf_cuda_backward_kernel(
 			atomicAdd(&grad_input[ii][neighbor_inds[ii][i][k]][kk],  guidance[ii][i][k][cur_head] * cur_compute);
 		}
 		grad_weights[ii][i][k][cur_mid] = weight_grad_temp;
-//		if (ii==0 && i == 0 && k==0)
-//		{
-//			printf("Adding the first guidance vector.\n");
-//			printf("Adding %f to %f\n", guidance_grad_temp[0], grad_guidance[ii][i][0][k]);
-//		}
 		#pragma unroll
 		for (kk=0;kk<num_heads;kk++)
 			atomicAdd(&grad_guidance[ii][i][k][kk],guidance_grad_temp[kk]);
 		__syncthreads();
-//		for (kk = blockIdx.x % increment;kk<C_in;kk+=increment)
-//		{
-//			scalar_t input_grad_fin = 0.0;
-//			for(k=0;k<K;k++)
-//				input_grad_fin += input_grad_temp[k * C_in + kk];
-//			grad_input[ii][neighbor_inds[i][k][cur_in] = input_grad
-//		}
 	}
 }
 
@@ -269,8 +221,6 @@ __global__ void pconv_cuda_backward_kernel(
     torch::PackedTensorAccessor32<scalar_t,3,torch::RestrictPtrTraits> __restrict__ grad_input,
     torch::PackedTensorAccessor32<scalar_t,4,torch::RestrictPtrTraits> __restrict__ grad_weights,
     torch::PackedTensorAccessor32<scalar_t,4,torch::RestrictPtrTraits> __restrict__ grad_additional)
-//    const torch::PackedTensorAccessor32<scalar_t,2,torch::RestrictPtrTraits> __restrict__ mlp_weights,
- //   const torch::PackedTensorAccessor32<scalar_t,1,torch::RestrictPtrTraits> __restrict__ mlp_bias,
 /* 
    grad_output: B x N x (C_mid * C_in), the gradient derived from above
    input: B x N x C_in tensor, B = batch size, N = number of points, C_in = number of channels, input features
@@ -291,7 +241,6 @@ __global__ void pconv_cuda_backward_kernel(
         const int Nout = neighbor_inds.size(1);
         const int C_in = input.size(2);
         const int K = neighbor_inds.size(2);
-//      const int C_out = mlp_weights.size(1);
         const int C_mid = weights.size(3);
 	const int C_add = additional_features.size(3);
         const int increment = blockDim.x / C_mid;
@@ -333,9 +282,6 @@ torch::Tensor pcf_cuda_forward(
     torch::Tensor neighbor_inds,
     torch::Tensor guidance,
     torch::Tensor weights
-//,
-//    torch::Tensor mlp_weights,
-//    torch::Tensor mlp_bias
 )
 {
 	const int B = input.size(0);
@@ -343,22 +289,15 @@ torch::Tensor pcf_cuda_forward(
 	const int Nout = neighbor_inds.size(1);
 	const int C_in = input.size(2);
 	const int C_mid =  weights.size(3);
-//	const int Cout = mlp_weights.size(1);
 	const int numBlocks = B * Nout;
 	const int numThreads = C_mid * C_in > 256 ? 256 : C_mid * C_in;
         auto output = torch::zeros({B,Nout,C_mid*C_in}, input.type());
-//	const int shared_memory_size = C_in * C_mid * 8;
-//	TORCH_CHECK(shared_memory_size <= 49152, "Currently does not support such large layers. Try reducing C_in * C_mid")
-// Test whether we can set such large shared memory
-//	cudaFuncSetAttribute(pcf_cuda_forward_kernel, cudaFuncAttributeMaxDynamicSharedMemorySize, shared_memory_size);
 	AT_DISPATCH_FLOATING_TYPES(output.type(), "pcf_cuda_forward_kernel", ([&] {
 	pcf_cuda_forward_kernel<scalar_t><<<numBlocks, numThreads>>>(
 		input.packed_accessor32<scalar_t,3,torch::RestrictPtrTraits>(),
 		neighbor_inds.packed_accessor32<long,3,torch::RestrictPtrTraits>(),
 		guidance.packed_accessor32<scalar_t,4,torch::RestrictPtrTraits>(),
 		weights.packed_accessor32<scalar_t,4,torch::RestrictPtrTraits>(),
-//		mlp_weights.packed_accessor32<scalar_t,2,torch::RestrictPtrTraits>(),
-//		mlp_bias.packed_accessor32<scalar_t,1,torch::RestrictPtrTraits>(),
                 output.packed_accessor32<scalar_t,3,torch::RestrictPtrTraits>());
 	}));
 	return output;
@@ -379,7 +318,6 @@ std::vector<torch::Tensor> pcf_cuda_backward(
     const int C_in = input.size(2);
     const int C_mid =  weights.size(3);
     const int K = neighbor_inds.size(2);
-//      const int Cout = mlp_weights.size(1);
     const int numBlocks = B * Nout;
     const int numThreads = C_mid * K;
     auto grad_input = torch::zeros_like(input);
@@ -404,9 +342,6 @@ torch::Tensor pconv_cuda_forward(
     torch::Tensor neighbor_inds,
     torch::Tensor weights,
     torch::Tensor additional_features
-//,
-//    torch::Tensor mlp_weights,
-//    torch::Tensor mlp_bias
 )
 {
         const int B = input.size(0);
@@ -415,22 +350,15 @@ torch::Tensor pconv_cuda_forward(
         const int C_in = input.size(2);
 	const int C_add = additional_features.size(3);
         const int C_mid =  weights.size(3);
-//      const int Cout = mlp_weights.size(1);
         const int numBlocks = B * Nout;
         const int numThreads = C_mid * C_in > 256 ? 256 : C_mid * C_in;
         auto output = torch::zeros({B,Nout,C_mid*(C_in+C_add)}, input.type());
-//      const int shared_memory_size = C_in * C_mid * 8;
-//      TORCH_CHECK(shared_memory_size <= 49152, "Currently does not support such large layers. Try reducing C_in * C_mid")
-// Test whether we can set such large shared memory
-//      cudaFuncSetAttribute(pcf_cuda_forward_kernel, cudaFuncAttributeMaxDynamicSharedMemorySize, shared_memory_size);
         AT_DISPATCH_FLOATING_TYPES(output.type(), "pconv_cuda_forward_kernel", ([&] {
         pconv_cuda_forward_kernel<scalar_t><<<numBlocks, numThreads>>>(
                 input.packed_accessor32<scalar_t,3,torch::RestrictPtrTraits>(),
                 neighbor_inds.packed_accessor32<long,3,torch::RestrictPtrTraits>(),
                 weights.packed_accessor32<scalar_t,4,torch::RestrictPtrTraits>(),
 		additional_features.packed_accessor32<scalar_t,4,torch::RestrictPtrTraits>(),
-//              mlp_weights.packed_accessor32<scalar_t,2,torch::RestrictPtrTraits>(),
-//              mlp_bias.packed_accessor32<scalar_t,1,torch::RestrictPtrTraits>(),
                 output.packed_accessor32<scalar_t,3,torch::RestrictPtrTraits>());
         }));
         return output;
@@ -451,7 +379,6 @@ std::vector<torch::Tensor> pconv_cuda_backward(
     const int C_in = input.size(2);
     const int C_mid =  weights.size(3);
     const int K = neighbor_inds.size(2);
-//      const int Cout = mlp_weights.size(1);
     const int numBlocks = B * Nout;
     const int numThreads = C_mid * K;
     auto grad_input = torch::zeros_like(input);

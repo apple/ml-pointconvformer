@@ -1,3 +1,7 @@
+# checkpoint.py taken from https://github.com/csrhddlam/pytorch-checkpoint/blob/master/checkpoint.py
+# copyright (c) 2018 Huiyu Wang
+# MIT License: https://github.com/csrhddlam/pytorch-checkpoint/blob/master/LICENSE
+
 import torch
 import warnings
 

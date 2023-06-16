@@ -1,3 +1,8 @@
+## Adapted from StratifiedTransformer
+## https://github.com/dvlab-research/Stratified-Transformer
+## Copyright @ 2022 DV Lab
+## MIT License, https://github.com/dvlab-research/Stratified-Transformer/blob/main/LICENSE.md
+
 import os
 import logging
 import functools
