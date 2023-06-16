@@ -1,0 +1,13 @@
+name: 'PointConvFormer ScanNet 10cm'
+tags: ['PointConvFormer', 'ScanNet', '10cm']
+setup_command: 'sh setup.sh'
+command: 'sh run_distributed.sh 4 configFLPCF_10cm.yaml'
+resources:
+  docker_image: docker.apple.com/fuxin_li/ffcv_image:latest
+  num_gpus: 4
+  num_cpus: 24
+  timeout: 7d
+  disk_gb: 200
+  memory_gb: 256
+  cluster: ['kube_us_east_1c','kube_us_east_1d','kube_us_west_2c','kube_us_west_3b','kube_us_west_3c']
+project_id: photon

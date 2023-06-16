@@ -1,0 +1,94 @@
+BATCH_NORM:     True
+BATCH_SIZE:     4
+NUM_WORKERS:    24
+USE_XYZ:        True
+USE_MLP:        False
+USE_WEIGHT:     True
+device:         'cuda'
+DDP:            True
+manual_seed:    1
+sync_bn:        True
+
+print_freq:     5
+eval_freq:      5
+save_freq:      5
+
+TIME: False
+
+MAX_POINTS_NUM: 120000
+USE_MULTI_GPU:  True
+use_ASPP:       False
+NormalizedXYZ:  False
+K_forward:      [16, 16, 16, 16, 16]
+# K_forward:      [8, 8, 8, 8, 8]
+K_propagate:    [16, 16, 16, 16, 16]
+# K_propagate:    [5, 5, 5, 5, 5]
+K_self:         [16, 16, 16, 16, 16]
+# K_self:         [8, 8, 8, 8, 8]
+point_dim:      3
+total_epoches:  300
+
+num_level:      5
+# grid_size:      [0.02, 0.06, 0.2, 0.4, 0.8]
+grid_size:      [0.05, 0.1, 0.2, 0.4, 0.8]
+# grid_size:      [0.1, 0.2, 0.4, 0.8, 1.6]
+# grid_size:      [0.02, 0.04, 0.08, 0.16, 0.32]
+# grid_size:      [0.02, 0.06, 0.18, 0.54, 1.62]
+# grid_size:      [0.02, 0.08, 0.32, 1.28, 5.12]
+dialated_rate:  [   1,    1,    1,    1]
+# dialated_rate:  [   2,    2,    2,    2,    2]
+base_dim:       64
+# feat_dim:       [64, 64, 128, 192, 384, 384]
+feat_dim:       [64, 128, 192, 256, 384]
+# feat_dim:       [64, 128, 256, 384, 512, 768]
+mid_dim:        [16, 16,16,16,16]
+mid_dim_back:   1
+
+guided_level:   0
+num_heads:      8
+resblocks:      [ 0, 2, 4, 6, 6]
+# resblocks:      [ 0, 1, 3, 5, 5, 5]
+resblocks_back: [ 0, 0, 0, 0, 0]
+# resblocks_back: [ 1, 1, 1, 1, 1, 1]
+
+train_data_path: './data/ScanNet_withNewNormal/train/*.pth'
+val_data_path:   './data/ScanNet_withNewNormal/val/*.pth'
+test_data_path:  './data/ScanNet_withNewNormal/test/*.pth'
+pretrain:        null
+optimizer:       'AdamW'
+adamw_decay:     0.05
+learning_rate:   0.01
+accum_iter:      1
+gamma:           0.5
+label_smoothing: 0.2
+mix3D:           True
+scheduler:       'MultiStepWithWarmup' # 'MultiStepWithWarmup' 'CosineAnnealingWarmupRestarts'
+# milestones:      [200, 300, 400, 500]
+milestones:      [60, 120, 170, 220, 260]
+ft_learning_rate: 0.016
+decay_rate:      0.0001
+multi_gpu:       null
+ignore_label:    -100
+drop_path_rate:  0.
+dropout_rate:    0.
+dropout_fc:      0.
+layer_norm_guidance: False
+
+scheduler_update: 'step'
+warmup:           'linear'
+warmup_epochs:    10
+warmup_ratio:     0.00001
+
+save_to_blobby:  True
+use_tensorboard: False
+model_name:      'NewPointConvFormer_10cm'
+experiment_dir:  './guided_experiment_10cm/'
+ft_experiment_dir: './ft_guided_experiment_10cm/'
+num_classes:      20
+ft_model_path:   '/mnt/task_runtime/guided_experiment_10cm/hsc/model/model_best.pth'
+
+eval_path:       './evaluation_10cm/'
+
+classes:         ['wall', 'floor', 'cabinet', 'bed', 'chair', 'sofa', 'table', 'door',
+                  'window', 'bookshelf', 'picture', 'counter', 'desk', 'curtain',
+                  'refridgerator', 'shower curtain', 'toilet', 'sink', 'bathtub', 'otherfurniture']
