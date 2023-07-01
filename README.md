@@ -50,15 +50,15 @@ setup.sh
 
 ### Training
 
-1. Before training, please setup the `train_data_path` and `val_data_path` in `configFLPCF_10cm.yaml`;
+1. Before training, please setup the `train_data_path` and `val_data_path` in `configPCF_10cm.yaml`;
 
-2. You might also want to set the `model_name`, `experiment_dir` accordingly in `configFLPCF_10cm.yaml`;
+2. You might also want to set the `model_name`, `experiment_dir` accordingly in `configPCF_10cm.yaml`;
 
 4. Change other settings in `configFLPCF_10cm.yaml` based on your experiments;
 
-5. Make sure you have the same number of CPUs as num_workers in the config file (e.g. configFLPCF_10cm.yaml).
+5. Make sure you have the same number of CPUs as num_workers in the config file (e.g. configPCF_10cm.yaml).
 
-6. Run ```sh run_distributed.sh num_gpus config_file_name``` to train the model with num_gpus GPUs, or python train_ScanNet_DDP_WarmUP.py --config configFLPCF_10cm.yaml to train the model with a single GPU.
+6. Run ```sh run_distributed.sh num_gpus config_file_name``` to train the model with num_gpus GPUs, or python train_ScanNet_DDP_WarmUP.py --config configPCF_10cm.yaml to train the model with a single GPU.
 
 ### Evaluation
 
@@ -67,7 +67,7 @@ setup.sh
 Then, you can evaluate with the following comand:
 
 ```
-python test_ScanNet_simple.py --config ./configFLPCF_10cm.yaml --pretrain_path ./pretrain/[model_weights].pth
+python test_ScanNet_simple.py --config ./configPCF_10cm.yaml --pretrain_path ./pretrain/[model_weights].pth
 ```
 which will evaluate the time as well as outputting ply files for each scene.
 
